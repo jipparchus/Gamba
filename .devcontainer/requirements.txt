@@ -1,0 +1,5 @@
+torch_geometric
+ultralytics
+opencv-python
+scikit-learn
+ipykernel
