@@ -1,6 +1,11 @@
-app/asset/
-app/hold_detect/runs/
-app/KP_detect/runs/
+# Asset
+app/asset/private/
+app/oldbit/
+
+# Video-Depth-Anything model and venv for it (automatically created by the main script)
+app/MVP/Video-Depth-Anything/
+app/MVP/venv/
+
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

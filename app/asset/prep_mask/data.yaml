@@ -1,0 +1,7 @@
+names:
+- wall
+- climber
+nc: 2
+path: /workspaces/MoonClimbers/app/asset/prep_mask
+train: /workspaces/MoonClimbers/app/asset/prep_mask/images/train
+val: /workspaces/MoonClimbers/app/asset/prep_mask/images/val
