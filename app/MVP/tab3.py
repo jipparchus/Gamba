@@ -22,7 +22,13 @@ path_current = os.path.dirname(os.path.abspath('__file__'))
 sys.path.append(os.path.split(path_current)[0])
 
 from app_sys import AppSys
-from utils import AnnotationObjects, VideoData, WallKeypoints
+from utils import (
+    AnnotationObjects,
+    VideoData,
+    WallKeypoints,
+    direc_exist_check,
+    init_yolo_config,
+)
 from utils_train import SampleImage
 
 app_sys = AppSys()
@@ -54,6 +60,7 @@ class Tab3(tk.Frame):
         super().__init__(master)
         self.direc_assets = direc_assets
         self.saveto = direc_saveto
+        direc_exist_check(self.saveto)
         self.listup_imgs()
         self.direc_video = os.path.join(self.direc_assets, app_sys.Default_Video)
         self.video = VideoData(path=self.direc_video)
