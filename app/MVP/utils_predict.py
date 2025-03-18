@@ -6,7 +6,7 @@ import numpy as np
 import torch
 
 path_current = os.path.dirname(os.path.abspath('__file__'))
-sys.path.append(path_current)
+sys.path.append(os.path.split(path_current)[0])
 
 from app_sys import AppSys
 

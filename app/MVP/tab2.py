@@ -25,7 +25,7 @@ from sklearn.model_selection import train_test_split
 from ultralytics import YOLO
 
 path_current = os.path.dirname(os.path.abspath('__file__'))
-sys.path.append(path_current)
+sys.path.append(os.path.split(path_current)[0])
 
 from app_sys import AppSys
 from utils import AnnotationObjects, VideoData, direc_exist_check, init_yolo_config

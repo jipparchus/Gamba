@@ -4,7 +4,7 @@ import tkinter as tk
 import tkinter.ttk as ttk
 
 path_current = os.path.dirname(os.path.abspath('__file__'))
-sys.path.append(path_current)
+sys.path.append(os.path.split(path_current)[0])
 
 from tab1 import Tab1
 from tab2 import Tab2

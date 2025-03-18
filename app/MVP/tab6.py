@@ -19,7 +19,7 @@ from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg, NavigationToolb
 from PIL import Image, ImageTk
 
 path_current = os.path.dirname(os.path.abspath('__file__'))
-sys.path.append(path_current)
+sys.path.append(os.path.split(path_current)[0])
 
 from app_sys import AppSys
 from utils import VideoData, get_log_message
