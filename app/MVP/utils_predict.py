@@ -6,8 +6,7 @@ import numpy as np
 import torch
 
 path_current = os.path.dirname(os.path.abspath('__file__'))
-os.path.split(path_current)[0]
-sys.path.append('/workspaces/MoonClimbers/app')
+sys.path.append(path_current)
 
 from app_sys import AppSys
 

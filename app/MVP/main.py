@@ -4,8 +4,7 @@ import tkinter as tk
 import tkinter.ttk as ttk
 
 path_current = os.path.dirname(os.path.abspath('__file__'))
-os.path.split(path_current)[0]
-sys.path.append('/workspaces/MoonClimbers/app')
+sys.path.append(path_current)
 
 from tab1 import Tab1
 from tab2 import Tab2

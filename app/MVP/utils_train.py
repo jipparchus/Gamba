@@ -10,8 +10,7 @@ from sklearn.utils import shuffle
 from utils_predict import standardize_fsize
 
 path_current = os.path.dirname(os.path.abspath('__file__'))
-os.path.split(path_current)[0]
-sys.path.append('/workspaces/MoonClimbers/app')
+sys.path.append(path_current)
 
 app_sys = AppSys()
 
