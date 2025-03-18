@@ -140,6 +140,12 @@ class Tab2(tk.Frame):
 
         frame = self.frame_top_btm_left_top
 
+        self.frame_top_btm_left_top_left = tk.Frame(frame, relief=tk.RIDGE, bd=5, width=20)
+        self.frame_top_btm_left_top_left.pack(side=tk.LEFT)
+        self.frame_top_btm_left_top_right = tk.Frame(frame, relief=tk.RIDGE, bd=5, width=10)
+        self.frame_top_btm_left_top_right.pack(side=tk.LEFT)
+
+        frame = self.frame_top_btm_left_top_left
         self.optn_sample_mode = [
             'Random',
             'Percentage'
@@ -169,16 +175,20 @@ class Tab2(tk.Frame):
         self.checkbox_2 = tk.Checkbutton(frame, onvalue=1, offvalue=0, variable=self.effect_sharp)
         self.checkbox_2.grid(column=4, row=1)
 
+        frame = self.frame_top_btm_left_top_right
+        self.btn_sample = tk.Button(frame, text='Sample', height=5, width=10, command=self.sample_frames)
+        # self.btn_sample.grid(column=1, row=0)
+        self.btn_sample.pack()
 
         frame = self.frame_top_btm_left_btm
 
-        self.btn_sample = tk.Button(frame, text='Sample', command=self.sample_frames)
-        self.btn_sample.grid(column=1, row=0)
+        # self.btn_sample = tk.Button(frame, text='Sample', height=10, width=10, command=self.sample_frames)
+        # self.btn_sample.grid(column=1, row=0)
         self.btn_load_anno = tk.Button(frame, text='Load Annotation', command=self.load_saved_annotation)
-        self.btn_load_anno.grid(column=0, row=1)
+        self.btn_load_anno.grid(column=0, row=0)
         self.btn_load_anno.config(state=tk.DISABLED)
         self.btn_new_anno = tk.Button(frame, text='Create New Annotation', command=self.create_annotation, background='yellow')
-        self.btn_new_anno.grid(column=2, row=1)
+        self.btn_new_anno.grid(column=2, row=0)
 
         """ List of nodes """
         self.frame_top_btm_right_1 = tk.Frame(self.frame_top_btm_right, relief=tk.FLAT, bd=5, width=20)

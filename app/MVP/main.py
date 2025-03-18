@@ -12,6 +12,7 @@ from tab3 import Tab3
 from tab4 import Tab4
 from tab5 import Tab5
 from tab6 import Tab6
+from tab7 import Tab7
 
 
 class Application(ttk.Notebook):
@@ -20,29 +21,63 @@ class Application(ttk.Notebook):
         # self.root_width = 480
         self.root_width = 1200
         # self.root_height = 730
-        self.root_height = 900
+        self.root_height = 730
         self.master.title('Gamba!! MVP')
         self.master.geometry(f'{self.root_width}x{self.root_height}')
+        # child frames can be expanded equally
+        self.master.grid_rowconfigure(0, weight=1)
+        self.master.grid_rowconfigure(1, weight=1)
+
+        # Fundamental devision of top and bottom of the master window
+        self._master_top = tk.Frame(self.master, height=790)
+        self._master_top.pack(side=tk.TOP, fill='both', expand=True)
+        self._master_btm = tk.Frame(self.master, height=10)
+        self._master_btm.pack(side=tk.TOP)
+
+        # Canvas to make the master_top scrollable
+        self.master_top_canvas = tk.Canvas(self._master_top)
+        self.master_top_canvas.pack(side=tk.LEFT, fill='both', expand=True)
+
+        # Scrollbar
+        self.scrollbar = ttk.Scrollbar(self._master_top, orient=tk.VERTICAL, command=self.master_top_canvas.yview)
+        self.scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
+
+        # Configure the canvas
+        self.master_top_canvas.configure(yscrollcommand=self.scrollbar.set)
+        self.master_top_canvas.bind('<Configure>', lambda e: self.master_top_canvas.configure(scrollregion=self.master_top_canvas.bbox('all')))
+
+        self.master_top = tk.Frame(self.master_top_canvas)
+        self.master_top_canvas.create_window((0,0), window=self.master_top, anchor='nw')
+
+        self.master_btm = tk.Frame(self._master_btm, width=self.root_width, height=100)
+        self.master_btm.pack(side=tk.TOP)
 
         """
         Left: tabs, Right : console
         """
+        self.frame_left = tk.Frame(self.master_top, width=500)
+        self.frame_left.pack(side=tk.LEFT, expand=True, fill='both')
+
+        self.frame_right = tk.Frame(self.master_top, width=500)
+        self.frame_right.pack(side=tk.LEFT,  expand=True, fill='both')
+
+        self.console_text = tk.Text(self.frame_right, state='disabled', width=500)
+        self.console_text.pack(expand=True, fill='both')
+
+        self.btn_quit = tk.Button(self.master_btm, text='QUIT',width=60, justify='center' , command=root.destroy, foreground='black', background='yellow')
+        self.btn_quit.pack(side=tk.BOTTOM)
+
         # Create main container frames
-        self.frame_left = tk.Frame(self, width=800)
-        self.frame_left.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
-
-        self.frame_right = tk.Frame(self, relief=tk.SOLID, bd=5, width=700)
-        self.frame_right.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
-
-        self.console_text = tk.Text(self.frame_right, state='disabled', height=800)
-        self.console_text.pack(side=tk.TOP, fill=tk.BOTH, expand=True)
-
         """
         Tabs (ttk.Notebook)
         """
         # Notebook to hold tabs
-        self.notebook = ttk.Notebook(self.frame_left)
-        self.notebook.pack(expand=True, fill='both')
+        self.notebook = ttk.Notebook(self.frame_left, height=self.frame_left['height'], width=self.frame_left['width'])
+        # self.notebook.pack(expand=True, fill='both')
+        self.notebook.pack(side=tk.LEFT)
+        # self.notebook.grid(row=0, column=0, sticky=tk.NSEW, padx=10, pady=10)
+        # self.notebook.grid_rowconfigure(0, weight=1)
+        # self.notebook.rowconfigure(0, weight=1)
 
         # Trim the head and tail of the video & depth estimation using video-depth-anything model
         tab1 = tk.Frame(self.notebook)
@@ -67,27 +102,21 @@ class Application(ttk.Notebook):
         # Solve RANSAC PnP -> get rotation & translation matrix -> 3D wall & human pose coordinates standardisation
         tab5 = tk.Frame(self.notebook)
         self.notebook.add(tab5, text="Solving PnP")
-        Tab4(master=tab5)
+        Tab5(master=tab5)
 
         # Contacts on the wall
         tab6 = tk.Frame(self.notebook)
         self.notebook.add(tab6, text="Contact Detection")
-        Tab5(master=tab6)
+        Tab6(master=tab6)
 
         # Wall & climber 3D model with contact on the wall
         tab7 = tk.Frame(self.notebook)
         self.notebook.add(tab7, text="Summary")
-        Tab6(master=tab7)
-
-        self._quit_app()
-        self.pack()
+        Tab7(master=tab7)     
 
         # redirect sys.stdout -> TextRedirector
         self.redirect_sysstd()
 
-    def _quit_app(self):
-        quit = tk.Button(self.master, text="QUIT", command=root.destroy)
-        quit.pack(side=tk.BOTTOM)
     
     def redirect_sysstd(self):
         # We specify that sys.stdout point to TextRedirector
@@ -114,5 +143,6 @@ class TextRedirector(object):
 
 if __name__ == '__main__':
     root = tk.Tk()
+    root.resizable(False, False)
     app = Application(master=root)
     app.mainloop()

@@ -25,7 +25,7 @@ from app_sys import AppSys
 from utils import VideoData, get_log_message
 
 app_sys = AppSys()
-
+ 
 
 """
 Logging Config
