@@ -1,6 +1,11 @@
 # Asset
 app/asset/private/
+app/asset/prep_mask/
+app/asset/prep_kp/
+app/asset/kp_adj.csv
+app/asset/kp_graph_init.pkl
 app/oldbit/
+*.mp4
 
 # Video-Depth-Anything model and venv for it (automatically created by the main script)
 app/MVP/Video-Depth-Anything/
