@@ -11,6 +11,10 @@ class AppSys:
         self.PATH_HOME = os.path.dirname(os.path.abspath(__file__))
 
         self.Default_Video = '1StarChoss.mp4'
+        basename = self.Default_Video.split('.')[0]
+        self.Default_Video_trimmed = basename + '_trimmed.mp4'
+        self.Default_Video_masked = basename + '_trimmed_masked.mp4'
+        self.Default_Video_kp = basename + '_trimmed_masked_kp.mp4'
 
         """ Asset Paths """
         self.PATH_ASSET = os.path.join(self.PATH_HOME, 'asset')
@@ -43,7 +47,13 @@ class AppSys:
         self.PATH_ASSET_PREP_MSK_YAML = os.path.join(self.PATH_ASSET_PREP_MSK, 'data.yaml')
         # Key point detection data
         self.PATH_ASSET_PREP_KP = os.path.join(self.PATH_ASSET, 'prep_kp')
-
+        self.PATH_ASSET_PREP_KP_TEMP = os.path.join(self.PATH_ASSET_PREP_KP, 'temp')
+        self.PATH_ASSET_PREP_KP_TRAIN = os.path.join(self.PATH_ASSET_PREP_KP, 'images', 'train')
+        self.PATH_ASSET_PREP_KP_VAL = os.path.join(self.PATH_ASSET_PREP_KP, 'images', 'val')
+        self.PATH_ASSET_PREP_KP_LBL = os.path.join(self.PATH_ASSET_PREP_KP, 'labels')
+        self.PATH_ASSET_PREP_KP_LBL_TRAIN = os.path.join(self.PATH_ASSET_PREP_KP_LBL, 'train')
+        self.PATH_ASSET_PREP_KP_LBL_VAL = os.path.join(self.PATH_ASSET_PREP_KP_LBL, 'val')
+        self.PATH_ASSET_PREP_KP_YAML = os.path.join(self.PATH_ASSET_PREP_KP, 'data.yaml')
 
         """ Model Paths """
         # Pre-trained
