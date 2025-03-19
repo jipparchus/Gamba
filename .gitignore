@@ -1,7 +1,10 @@
 # Asset
 app/asset/private/
-app/asset/prep_mask/
+app/asset/depth/
+app/asset/masked/
 app/asset/prep_kp/
+app/asset/prep_mask/
+app/asset/raw
 app/asset/kp_adj.csv
 app/asset/kp_graph_init.pkl
 app/oldbit/
