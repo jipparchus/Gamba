@@ -1,4 +1,5 @@
 import os
+import pickle
 import random
 import sys
 
@@ -7,6 +8,7 @@ import numpy as np
 from app_sys import AppSys
 from sklearn.model_selection import train_test_split
 from sklearn.utils import shuffle
+from utils import direc_exist_check
 from utils_predict import standardize_fsize
 
 path_current = os.path.dirname(os.path.abspath('__file__'))
@@ -118,23 +120,24 @@ class SampleImage():
         # Number of frames to be extracted from each video
 
         self.vpath = video
+        print(f'VPATH: {self.vpath}')
         self.vname = os.path.split(self.vpath)[1]
         # Depth video
-        self.vpath_depth = os.path.join(app_sys.PATH_ASSET_DEPTH, f'{self.vname[:-4]}_vis.mp4')
+        self.vpath_depth = os.path.join(app_sys.PATH_ASSET_DEPTH, f"{self.vname.split('.')[0].replace('_masked', '')}_vis.mp4")
         self.vname_depth = os.path.split(self.vpath_depth)[1]
+        print(f'VPATH_DEPTH: {self.vpath_depth}')
         # Directpry to save the augmented frames
         self.saveto = saveto
         print('save to: ', self.saveto)
-        os.makedirs(self.saveto, exist_ok=True)
-
+        direc_exist_check(self.saveto)
         # Open the video and get the number of frames
         self.vidcap = cv2.VideoCapture(self.vpath)
         self.num_frames = int(self.vidcap.get(cv2.CAP_PROP_FRAME_COUNT))
-        print(self.num_frames)
+        print('#Frames: ', self.num_frames)
         
         self.vidcap_depth = cv2.VideoCapture(self.vpath_depth)
         self.num_frames_depth = int(self.vidcap_depth.get(cv2.CAP_PROP_FRAME_COUNT))
-        print(self.num_frames_depth)
+        print('#Frames Depth', self.num_frames_depth)
         
 
     def get_frame(self, nf, method, depth=False):
@@ -177,8 +180,13 @@ class SampleImage():
                 arg = 100
             list_nfs = np.unique(np.linspace(0, self.num_frames-1, num=int(self.num_frames*arg/100)).astype(int))
 
+        # Look for the mask list
+        path_masks = self.vpath.replace('mp4','pkl')
+        if (os.path.exists(path_masks)) & ('depth' in lis_effects):
+            masks = pickle.load(open(path_masks, 'rb'))
+
         # Extraction
-        for i in list_nfs:
+        for e, i in enumerate(list_nfs):
             if 'depth' in lis_effects:
                 img, img_depth = self.get_frame(i, method, depth=True)
                 if (img is None) | (img_depth is None):
@@ -191,6 +199,11 @@ class SampleImage():
             for eff in lis_effects:
                 if eff == 'depth':
                     img_depth_std = standardize_fsize(img_depth, target_size=640)
+
+
+
+                    img_depth_std = self.depth_masked(img_depth_std, masks[e])
+
                     cv2.imwrite(os.path.join(self.saveto, f"{self.vname.split('.')[0]}_{i}_{eff}.jpg"), img_depth_std)
                 else:
                     if eff in 'original':
@@ -200,8 +213,20 @@ class SampleImage():
                     img_std = standardize_fsize(img, target_size=640)
                     cv2.imwrite(os.path.join(self.saveto, f"{self.vname.split('.')[0]}_{i}_{eff}.jpg"), img_std)
                 
-            
+    def depth_masked(self, img_depth, mask):
+        """
+        Use the masked video frames to mask the corresponding depth video frames.
+        """
+        print(f'IMG DEPTH shape: {img_depth.shape}')
 
+        if len(img_depth.shape) == 3:
+            # Create (H, W, 3) mask with (128,128,128)
+            gray_mask = (128, 128, 128)
+        else:
+            gray_mask = 128
+
+        img_depth[mask == 0] = gray_mask
+        return img_depth.astype(np.uint8)
 
 def rename(lis_imgs, base=0):
     # Rename images in the list of image names
@@ -214,4 +239,5 @@ def rename(lis_imgs, base=0):
         print(i, img_name_new)
         lis_new_names.append(img_name_new)
     return lis_new_names
+
 

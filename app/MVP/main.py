@@ -3,9 +3,12 @@ import sys
 import tkinter as tk
 import tkinter.ttk as ttk
 
+from PIL import ImageTk
+
 path_current = os.path.dirname(os.path.abspath('__file__'))
 sys.path.append(os.path.split(path_current)[0])
 
+from app_sys import AppSys
 from tab1 import Tab1
 from tab2 import Tab2
 from tab3 import Tab3
@@ -14,6 +17,7 @@ from tab5 import Tab5
 from tab6 import Tab6
 from tab7 import Tab7
 
+app_sys = AppSys()
 
 class Application(ttk.Notebook):
     def __init__(self, master=None):
@@ -112,10 +116,32 @@ class Application(ttk.Notebook):
         # Wall & climber 3D model with contact on the wall
         tab7 = tk.Frame(self.notebook)
         self.notebook.add(tab7, text="Summary")
-        Tab7(master=tab7)     
+        Tab7(master=tab7)
+
+        # On selection of Tab3, pop up a window to show an image of the key points selection.
+        self.notebook.bind('<<NotebookTabChanged>>', self.on_tab_selected)
 
         # redirect sys.stdout -> TextRedirector
         self.redirect_sysstd()
+
+    def on_tab_selected(self, event):
+        """ Detect when Tab 3 is selected and open a new window """
+        selected_tab = event.widget.index('current')
+        if selected_tab == 2:
+            self.open_window_kp()
+
+    def open_window_kp(self):
+        """ Create a separate window """
+        self.win_kp_skeleton = tk.Toplevel(self)
+        self.win_kp_skeleton.title('Key Point Skeleton')
+        self.win_kp_skeleton.geometry('600x900')
+
+        # Canvas to show picture
+        self.canvas_pic = tk.Canvas(self.win_kp_skeleton, width=600, height=900)
+        self.canvas_pic.pack(side=tk.TOP)
+
+        self.img = ImageTk.PhotoImage(file = os.path.join(app_sys.PATH_ASSET, 'kp_skeleton.png'))
+        self.canvas_pic.create_image(0, 0, anchor=tk.NW, image=self.img)
 
     
     def redirect_sysstd(self):

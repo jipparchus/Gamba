@@ -1,4 +1,5 @@
 import os
+import pickle
 import sys
 
 import cv2
@@ -91,7 +92,7 @@ def process_frame_seg(frame, model, class2keep, conf_lvl, bg_color):
     result = frame.copy()
     result[mask_np == 0] = bg_color  # Replace non-wall areas with gray
 
-    return result
+    return result, mask_np
 
 
 def masked_video(video, model, **kwargs):
@@ -115,8 +116,9 @@ def masked_video(video, model, **kwargs):
     w = int(video.get(cv2.CAP_PROP_FRAME_WIDTH))
     h = int(video.get(cv2.CAP_PROP_FRAME_HEIGHT))
     fps = float(round(video.get(cv2.CAP_PROP_FPS)))
-    print(f'w: {w}, h: {h}, fps: {fps}')
-
+    print(f'W: {w}, H: {h}, FPS: {fps}')
+    # list of gray masks
+    lis_masks = []
     # processed video
     out = cv2.VideoWriter(saveas, fourcc, fps, (640, 640))
     while video.isOpened():
@@ -124,14 +126,16 @@ def masked_video(video, model, **kwargs):
         if not ret:
             break
 
-        processed = process_frame_seg(frame, model, class2keep, conf_lvl, bg_color)
+        processed, mask_gray = process_frame_seg(frame, model, class2keep, conf_lvl, bg_color)
         out.write(processed)
+        lis_masks.append(mask_gray)
 
         if cv2.waitKey(1) & 0xFF == ord('q'):
             break
     video.release()
     out.release()
     cv2.destroyAllWindows()
+    pickle.dump(np.array(lis_masks), open(saveas.replace('mp4','pkl'), 'wb'))
 
 def annotated_video(video, model, conf_lvl=0.5):
     return model(os.path.join(app_sys.PATH_ASSET_RAW, video), conf=conf_lvl, device='cuda:0', save=True)

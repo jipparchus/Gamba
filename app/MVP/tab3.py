@@ -28,7 +28,7 @@ path_current = os.path.dirname(os.path.abspath('__file__'))
 sys.path.append(os.path.split(path_current)[0])
 
 from app_sys import AppSys
-from utils import AnnotationObjects, VideoData, direc_exist_check, init_yolo_config
+from utils import VideoData, WallKeypoints, direc_exist_check, init_yolo_config
 from utils_predict import masked_video
 from utils_train import SampleImage, rename
 
@@ -47,8 +47,6 @@ main_logger.addHandler(file_handler)
 main_logger.setLevel(DEBUG)
 
 
-plt.rcParams.update({'font.size': 120})
-matplotlib.use("svg")
 lock = threading.Lock()
 
 
@@ -56,30 +54,24 @@ lock = threading.Lock()
 class Tab3(tk.Frame):
     def __init__(self, master=None):
         super().__init__(master)
-        self.direc_assets = app_sys.PATH_ASSET_RAW
-        self.saveto = app_sys.PATH_ASSET_PREP_MSK_TEMP
+        self.direc_assets = app_sys.PATH_ASSET_MSK
+        self.saveto = app_sys.PATH_ASSET_PREP_KP_TEMP
         direc_exist_check(self.saveto)
         self.listup_imgs()
-        self.direc_video = os.path.join(self.direc_assets, app_sys.Default_Video)
+        self.direc_video = os.path.join(self.direc_assets, app_sys.Default_Video_masked)
         self.video = VideoData(path=self.direc_video)
         self.post_init()
+        self.marker_radius = 6
+        self.popup = None
 
 
     def post_init(self):
-        # self.tt = np.arange(self.video.total_frames)
-        # self.s0 = np.zeros_like(self.tt)
-        # self.s1 = np.zeros_like(self.tt)
-        # self.s2 = np.zeros_like(self.tt)
-        # self.s3 = np.zeros_like(self.tt)
-        # self.list_status = [self.s0, self.s1, self.s2, self.s3]
-
         self.create_frames()
         self.create_widgets()
         self.init_video_canvas()
         self.pack()
 
     def create_frames(self):
-        # main_logger.info(get_log_message('func', 'Tab1.create_frames'))
         self.frame_top = tk.Frame(self, width=800)
         self.frame_top.pack(side=tk.TOP)
         self.frame_mid = tk.Frame(self, relief=tk.SOLID, bd=5, width=800)
@@ -115,7 +107,6 @@ class Tab3(tk.Frame):
         self.frame_btm_right.pack(side=tk.LEFT)
 
     def create_widgets(self):
-        # main_logger.info(get_log_message('func', 'Tab1.create_widgets'))
         """
         frame_top
         """
@@ -196,7 +187,7 @@ class Tab3(tk.Frame):
         frame = self.frame_top_btm_right_1
 
         self.listbox_title = tk.StringVar()
-        self.listbox_title.set('List of Points')
+        self.listbox_title.set('List of Keypoints')
 
         lbl = tk.Label(frame, textvariable=self.listbox_title)
         lbl.pack()
@@ -219,10 +210,8 @@ class Tab3(tk.Frame):
         self.frame_top_btm_right_3.pack(side=tk.TOP)
         frame = self.frame_top_btm_right_3
 
-        self.btn_delete_node_all = tk.Button(frame, text='Delete All', command=self.node_delete_all, background='red')
+        self.btn_delete_node_all = tk.Button(frame, text='Reset', command=self.node_delete_all, background='red')
         self.btn_delete_node_all.pack(side=tk.LEFT)
-        self.btn_delete_node = tk.Button(frame, text='Delete', command=self.node_delete)
-        self.btn_delete_node.pack(side=tk.LEFT)
 
 
         """
@@ -246,17 +235,11 @@ class Tab3(tk.Frame):
         self.nframe_lbl = tk.Label(frame, textvariable=self.nframe, width=15)
         self.nframe_lbl.grid(column=3, row=0)
 
-        self.optn_class_lbl = [
-            'wall',
-            'climber'
+        self.optn_node_states = [
+            'visible',
+            'obsecure',
+            'out of frames'
         ]
-
-        lbl = tk.Label(frame, text='Label: ')
-        lbl.grid(column=4, row=0)
-        self.class_lbl_selected = tk.StringVar()
-        self.class_lbl_selected.set('wall')
-        self.class_lbl = tk.OptionMenu(frame, self.class_lbl_selected, *self.optn_class_lbl, command=self.class_lbl_onselection)
-        self.class_lbl.grid(column=5, row=0)
 
         self.btn_annotation = tk.Button(frame, text='Start Annotation', bg='lightblue', command=self.start_annotation_thread)
         self.btn_annotation.grid(column=6, row=0)
@@ -277,8 +260,8 @@ class Tab3(tk.Frame):
         frame = self.frame_btm_right
 
         self.lis_yolo_model = [
-            'yolov11n-seg',
-            'YOLO12-seg'
+            'yolov11n-pose',
+            'YOLO12-pose'
         ]
         self.yolo_model_selected = tk.StringVar()
         self.yolo_model_selected.set(self.lis_yolo_model[0])
@@ -292,11 +275,10 @@ class Tab3(tk.Frame):
         # self.epochs.set(20)
         self.epochs_spbx = tk.Spinbox(frame, from_=1, to=100, width=3, textvariable=self.epochs)
         self.epochs_spbx.grid(column=2, row=0)
-        # Epochs
+        # Batch
         lbl = tk.Label(frame, text='Batch:')
         lbl.grid(column=3, row=0)
         self.batch = tk.IntVar(value=2)
-        # self.batch.set(2)
         self.batch_spbx = tk.Spinbox(frame, from_=1, to=100, width=3, textvariable=self.batch)
         self.batch_spbx.grid(column=4, row=0)
 
@@ -336,7 +318,7 @@ class Tab3(tk.Frame):
         img = ImageTk.PhotoImage(image=Image.fromarray(self.img_resized))
         image_width = img.width()
         image_height = img.height()
-        self.frame_mid_canvas.create_image((self.frame_mid_canvas.winfo_width() / 2 - image_width / 2), (self.frame_mid_canvas.winfo_height() / 2 - image_height / 2), image=img, anchor=tk.NW)
+        self.frame_mid_canvas.create_image((self.frame_mid_canvas.winfo_width() / 2 - image_width / 2), (self.frame_mid_canvas.winfo_height() / 2 - image_height / 2), image=img, anchor=tk.NW, tag='bg_img')
         self.frame_mid_canvas.image = img
 
     def draw_on_canvas_specific(self, ff):
@@ -369,12 +351,12 @@ class Tab3(tk.Frame):
         """
         Create blurred, sharpened and the original images from the selected video.
         """
-        lis_effects = ['original']
+        lis_effects = ['original', 'depth']
         for i, j in zip([self.effect_blur.get(), self.effect_sharp.get()], ['blur', 'sharp']):
             if i:
                 lis_effects.append(j)
         if self.direc_video.endswith('.mp4'):
-            sample_ = SampleImage(os.path.join(app_sys.PATH_ASSET_RAW, self.direc_video), self.saveto)
+            sample_ = SampleImage(os.path.join(app_sys.PATH_ASSET_MSK, self.direc_video), self.saveto)
             sample_.get_modified_frames(int(self.sample_param.get()), method=self.sample_mode_selected.get(), lis_effects=lis_effects)
         
         self.listup_imgs()
@@ -385,9 +367,9 @@ class Tab3(tk.Frame):
 
     def create_annotation(self):
         """
-        Create dictionary for annotation fraph data for each images
+        Create dictionary for annotation graph data for each images
         """
-        self.dict_annotation = {e: AnnotationObjects(img, self.optn_class_lbl) for e, img in enumerate(self.imgs2annotate_original)}
+        self.dict_annotation = {e: WallKeypoints(img) for e, img in enumerate(self.imgs2annotate_original)}
         
     def listup_imgs(self):
         """
@@ -396,7 +378,6 @@ class Tab3(tk.Frame):
         
         print(os.listdir(self.saveto))
         self.imgs2annotate = sorted([dd for dd in os.listdir(self.saveto) if dd.endswith('.jpg')])
-        # self.imgs2annotate = sorted([os.path.basename(dd) for dd in os.listdir(self.saveto) if dd.endswith('.png')])
         self.imgs2annotate_original = [i for i in self.imgs2annotate if 'original' in i]
         
     """ Move to different frames """
@@ -407,6 +388,7 @@ class Tab3(tk.Frame):
         self.nframe_check(nframe)
         nframe = int(self.nframe.get().split(' / ')[0])
         print(os.path.join(self.saveto, self.imgs2annotate_original[nframe-1]))
+        print(self.dict_annotation[nframe].graph)
         self.draw_on_canvas(cv2.imread(os.path.join(self.saveto, self.imgs2annotate_original[nframe-1])))
         self.update_field()
     
@@ -416,6 +398,7 @@ class Tab3(tk.Frame):
         self.nframe_check(nframe)
         nframe = int(self.nframe.get().split(' / ')[0])
         print(os.path.join(self.saveto, self.imgs2annotate_original[nframe-1]))
+        print(self.dict_annotation[nframe].graph)
         self.draw_on_canvas(cv2.imread(os.path.join(self.saveto, self.imgs2annotate_original[nframe-1])))
         self.update_field()
         
@@ -432,7 +415,7 @@ class Tab3(tk.Frame):
         self.img2annotate = self.imgs2annotate_original[nframe - 1]
         self.nframe.set(f'{nframe} / {len(self.imgs2annotate_original)}')
 
-    def class_lbl_onselection(self):
+    def node_status_onselection(self):
         self.update_field()
 
     def init_video_canvas(self):
@@ -440,7 +423,7 @@ class Tab3(tk.Frame):
         Initialise the canvas for video display
         """
         self.img = ImageTk.PhotoImage(image=Image.fromarray(np.zeros((self.canvas_h_video, self.canvas_w_video))))
-        self.frame_mid_canvas.create_image(0, 0, image=self.img, anchor=tk.NW)
+        self.frame_mid_canvas.create_image(0, 0, image=self.img, anchor=tk.NW, tag='bg_img')
     
     def start_annotation_thread(self):
         thread_start_annotation = threading.Thread(target=self.start_annotation)
@@ -450,20 +433,16 @@ class Tab3(tk.Frame):
         is_ready = 'dict_annotation' in self.__dir__()
         if is_ready:
         # Change the mouse cusor
-            self.frame_mid_canvas.bind("<Enter>", lambda event: self.frame_mid_canvas.config(cursor="crosshair"))
+            self.frame_mid_canvas.bind("<Enter>", lambda event: self.frame_mid_canvas.config(cursor="hand2"))
             self.frame_mid_canvas.bind("<Leave>", lambda event: self.frame_mid_canvas.config(cursor=""))
-            # Left click to place a node
-            self.frame_mid_canvas.bind("<Button-1>", self.on_lclick)
-            # Double left click to select the node -> move or delete
+            # Hold to move
             self.frame_mid_canvas.bind("<B1-Motion>", self.on_hold)
-            # Press Entre to complete the polygon
-            self.frame_mid_canvas.bind("<Button-3>", self.complete_polygon)
-
             self.frame_mid_canvas.focus_set()
 
-            self.annotation_class = self.optn_class_lbl.index(self.class_lbl_selected.get())
-
-            # self.list_nodes_yolo = []
+        else:
+            print('Click create annotation')
+            pass
+        
     def update_field(self):
         """
         As move to another image to be annotated, load the existing annotations and
@@ -480,150 +459,85 @@ class Tab3(tk.Frame):
         self.frame_mid_canvas.delete('all')
         self.draw_on_canvas(cv2.imread(os.path.join(self.saveto, self.img2annotate)))
 
-        edges = self.dict_annotation[self.img2annotate_idx].get_all_edges(self.class_lbl_selected.get())
-        lis_nodes = self.dict_annotation[self.img2annotate_idx].get_node_coords_all(self.class_lbl_selected.get())
+        edges = self.dict_annotation[self.img2annotate_idx].get_all_edges()
+        lis_nodes = self.dict_annotation[self.img2annotate_idx].get_node_coords_all()
         
         
         
         
         
-        dict_node_coords = {name: data['data'] for name, data in lis_nodes}
+        dict_node_coords = {name: data['coords_2d'] for name, data in lis_nodes}
         
         
         
         
-        
-        for edge in edges:
-            p0_name, p1_name = edge
-            
+        # Draw lines
+        for edge in edges.data():
+            p0_name, p1_name, dict_data = edge
+            tag = dict_data['tag']
             p0_coords = dict_node_coords[p0_name]
             p1_coords = dict_node_coords[p1_name]
-            self.frame_mid_canvas.create_line(p0_coords[0], p0_coords[1], p1_coords[0], p1_coords[1], fill='red', width=2, tag=f'{p0_name}_{p1_name}')
-
+            self.frame_mid_canvas.create_line(p0_coords[0], p0_coords[1], p1_coords[0], p1_coords[1], fill='red', width=2, tag=tag)
+            # Draw circles and tag with the node name
             for p_name, p_coords in dict_node_coords.items():
                 self.frame_mid_canvas.create_oval(p_coords[0]-self.marker_radius, p_coords[1]-self.marker_radius,
                                                 p_coords[0]+self.marker_radius, p_coords[1]+self.marker_radius,
-                                                outline='red', width=2, tag=f"n{p_name}")
+                                                outline='red', width=2, tag=p_name)
 
 
     def check_canvas_object(self):
         # Get the latest coordinates of the nodes with the object tag.
-        cls = self.class_lbl_selected.get()
 
         dict_temp = {}
-        print(self.frame_mid_canvas.find_all())
-        for obj_id in self.frame_mid_canvas.find_all():
-            tag = list(self.frame_mid_canvas.gettags(obj_id))
-            if len(tag) > 0:
-                tag = tag[0]
-                if ('current' not in tag) & ('n' in tag):
-                    coords = self.frame_mid_canvas.coords(obj_id)
-                    xx = np.mean([coords[0], coords[2]]).astype(int)
-                    yy = np.mean([coords[1], coords[3]]).astype(int)
-                    dict_temp[tag] = (xx, yy)
-                    self.dict_annotation[self.img2annotate_idx].update_node(cls, tag[1:], (xx, yy))
+        for tag in self.dict_annotation[self.img2annotate_idx].get_node_names():
+            coords = self.frame_mid_canvas.coords(tag)
+            xx = np.mean([coords[0], coords[2]]).astype(int)
+            yy = np.mean([coords[1], coords[3]]).astype(int)
+            dict_temp[tag] = (xx, yy)
+
         # nframe, class_class_lbl, nodes
-        self.listbox_title.set(f"Imgae {self.nframe.get().split(' / ')[0]} Class {self.annotation_class} Points")
+        self.listbox_title.set(f"Imgae {self.nframe.get().split(' / ')[0]}")
         self.listbox_nodes.delete(0, tk.END)
         for node, xy in dict_temp.items():
-            self.listbox_nodes.insert(tk.END, f'Point {node[1:]}: {xy}')
+            self.listbox_nodes.insert(tk.END, f'{node}: {xy}')
 
-        
-
-    def on_lclick(self, event):
-        """
-        Check if the click is held after certain time duration.
-        If still held, do not treat as a click, but as a hold
-        """
-        threshold_duration = 200    # milliseconds
-        self.is_hold = False
-        self.master.after(threshold_duration, self.get_click_coords, event)
-        
- 
-
-    def get_click_coords(self, event):
-        """
-        L-click to select nodes of polygon
-        """
-        self.marker_radius = 6
-        if not self.is_hold:
-            # self.frame_mid_canvas.create_oval(event.x-self.marker_radius, event.y-self.marker_radius,
-            #                                 event.x+self.marker_radius, event.y+self.marker_radius,
-            #                                 outline='red',
-            #                                 width=2,
-            #                                 tag=f"n{len([j['data'] for i, j in self.dict_annotation[self.img2annotate_idx].get_node_coords_all(self.class_lbl_selected.get())])}"
-            #                                 )
-
-            cls = self.class_lbl_selected.get()
-            nn = str(len(self.dict_annotation[self.img2annotate_idx].get_node_coords_all(cls)))
-            self.dict_annotation[self.img2annotate_idx].add_node(cls, nn, (event.x, event.y))
-
-            self.edge2line()
-
-
-
-            
-            # self.list_nodes_yolo += [event.x/self.canvas_w_video, event.y/self.canvas_h_video]
-            print([j['data'] for i, j in self.dict_annotation[self.img2annotate_idx].get_node_coords_all(self.class_lbl_selected.get())])
-            
-            if len([j['data'] for i, j in self.dict_annotation[self.img2annotate_idx].get_node_coords_all(self.class_lbl_selected.get())]) > 1:      
-                nbr = self.dict_annotation[self.img2annotate_idx].find_neighbours(cls, nn)[0]
-                # Tag for the edges on tkinter canvas
-                tag = self.dict_annotation[self.img2annotate_idx].find_adj_edges(cls, nn)[nbr]['tag']
-
-                p0 = self.dict_annotation[self.img2annotate_idx].get_node_coords(cls, nbr)
-                p1 = self.dict_annotation[self.img2annotate_idx].get_node_coords(cls, nn)
-                self.frame_mid_canvas.create_line(p0[0], p0[1], p1[0], p1[1], fill='red', width=2, tag=tag)
-                # self.list_edges.append((p0, p1))
-            
-            self.check_canvas_object()
-            
 
     def on_hold(self, event):
         """
         L-click hold to move the selected node
         """
-        max_distance = self.marker_radius*3
+        max_distance = self.marker_radius*100
         self.is_hold = True
-        if len([j['data'] for i, j in self.dict_annotation[self.img2annotate_idx].get_node_coords_all(self.class_lbl_selected.get())]) > 0:
+        if len([j['coords_2d'] for i, j in self.dict_annotation[self.img2annotate_idx].get_node_coords_all()]) > 0:
             # Find the closest node to the current coordinates
-            distance = np.linalg.norm(np.array([j['data'] for i, j in self.dict_annotation[self.img2annotate_idx].get_node_coords_all(self.class_lbl_selected.get())]) - np.array((event.x, event.y)), axis=1)
-            idx_min = np.argmin(distance)
-            if distance[idx_min] <= max_distance:
-                self.frame_mid_canvas.moveto(f'n{idx_min}', event.x-self.marker_radius, event.y-self.marker_radius)
-                [j['data'] for i, j in self.dict_annotation[self.img2annotate_idx].get_node_coords_all(self.class_lbl_selected.get())][idx_min] = (event.x, event.y)
-                self.update_lines(idx_min)
+            distance = np.linalg.norm(np.array([j['coords_2d'] for i, j in self.dict_annotation[self.img2annotate_idx].get_node_coords_all()]) - np.array((event.x, event.y)), axis=1)
+            # idx_min = np.argmin(distance)
+            idx_min = np.argsort(distance)[0]
+            # Move the node
+            node = [i for i, j in self.dict_annotation[self.img2annotate_idx].get_node_coords_all()][idx_min]
+            self.frame_mid_canvas.moveto(node, event.x-self.marker_radius, event.y-self.marker_radius)
+            print('BEFORE: ', self.dict_annotation[self.img2annotate_idx].get_node_coords(node))
+            self.dict_annotation[self.img2annotate_idx].update_node_coords_2d(node, (event.x, event.y))
+            print('AFTER: ', self.dict_annotation[self.img2annotate_idx].get_node_coords(node))
+            self.update_lines(node)
         
         self.check_canvas_object()
 
-    def update_lines(self, idx_node):
+    def update_lines(self, node):
+        # Node held by mouse
+        p1 = self.dict_annotation[self.img2annotate_idx].get_node_coords(node)
+        # {neighbouring node: {tag: edge_name}, ...}
+        tags_adj = self.dict_annotation[self.img2annotate_idx].find_adj_edges_tags(node)
+        print(f'HOLDING: {node}, RELATED EDGES: {tags_adj}')
+        print('#' * 20)
 
-        p1 = self.dict_annotation[self.img2annotate_idx].get_node_coords(self.class_lbl_selected.get(), str(idx_node))
-        dict_adj = self.dict_annotation[self.img2annotate_idx].find_adj_edges(self.class_lbl_selected.get(), str(idx_node))
-        nbrs = self.dict_annotation[self.img2annotate_idx].find_neighbours(self.class_lbl_selected.get(), str(idx_node))
-        for nbr in nbrs:
-            p0 = self.dict_annotation[self.img2annotate_idx].get_node_coords(self.class_lbl_selected.get(), nbr)
-            tag = dict_adj[nbr]['tag']
+        for tag in tags_adj:
+            node_adj = tag.replace(node,'').replace('_','')
+            p0 = self.dict_annotation[self.img2annotate_idx].get_node_coords(node_adj)
             self.frame_mid_canvas.delete(tag)
             self.frame_mid_canvas.create_line(p0[0], p0[1], p1[0], p1[1], fill='red', width=2, tag=tag)
 
-        
-    def complete_polygon(self, event):
-        """
-        R-click to complete the polygon
-        """
-        if (len([j['data'] for i, j in self.dict_annotation[self.img2annotate_idx].get_node_coords_all(self.class_lbl_selected.get())])) < 2:
-            pass
-        else:
-            # Connect the last and the first nodes
-            lis_nodes = self.dict_annotation[self.img2annotate_idx].get_node_coords_all(self.class_lbl_selected.get())
-            p0_name, p0_data = lis_nodes[0]
-            p1_name, p1_data = lis_nodes[-1]
-            self.dict_annotation[self.img2annotate_idx].close_polygon(self.class_lbl_selected.get())
-            self.frame_mid_canvas.create_line(p0_data['data'][0], p0_data['data'][1], p1_data['data'][0], p1_data['data'][1], fill='red', width=2, tag=f'{p0_name}_{p1_name}')
-            # self.list_edges.append((p0_data['data'], p1_data['data']))
-        
-        self.check_canvas_object()
+
 
     def node_select(self, event):
         # Find what node waws selected in the ListBox
@@ -631,42 +545,41 @@ class Tab3(tk.Frame):
         if idx_selected:
             self.node_selected = self.listbox_nodes.get(idx_selected)
 
-        for obj_id in self.frame_mid_canvas.find_all():
-            if len(list(self.frame_mid_canvas.gettags(obj_id))) > 0:
-                if f"n{self.node_selected.split(':')[0].split(' ')[1]}" == list(self.frame_mid_canvas.gettags(obj_id))[0]:
-                    self.frame_mid_canvas.itemconfig(obj_id, outline='red', width=7)
-                elif 'n' in list(self.frame_mid_canvas.gettags(obj_id))[0]:
-                    self.frame_mid_canvas.itemconfig(obj_id, outline='red', width=2)
+        # Highlight the node
+        node = self.node_selected.split(':')[0]
+        for tag in self.dict_annotation[self.img2annotate_idx].get_node_names():
+            if tag == node:
+                self.frame_mid_canvas.itemconfig(tag, outline='red', width=5)
+            else:
+                self.frame_mid_canvas.itemconfig(tag, outline='red', width=2)
+        
+        # Select the visibility from the pop-up window pull down
+        if self.popup and self.popup.winfo_exists():  
+            return
 
-    def node_delete(self):
-        self.frame_mid_canvas.delete(f"n{self.node_selected.split(':')[0].split(' ')[1]}")
-        dict_adj =  self.dict_annotation[self.img2annotate_idx].find_adj_edges(self.class_lbl_selected.get(), self.node_selected.split(':')[0].split(' ')[1])
-        print(dict_adj)
-        # Remove lines connected to the neighbours
-        xy = []
-        nodes = []
+        self.popup = tk.Toplevel(self)
+        self.popup.title("Select an Option")
+        self.popup.geometry("300x100")
 
-        # Assume that there are maximum two neighbours for polygon annotation
-        for node, data in dict_adj.items():
-            xx, yy = self.dict_annotation[self.img2annotate_idx].get_node_coords(self.class_lbl_selected.get(), node)
-            xy.append([xx, yy])
-            nodes.append(node)
-            self.frame_mid_canvas.delete(data['tag'])
-
-        # If two neighbours, 
-        if len(dict_adj.items()) == 2:
-            self.frame_mid_canvas.create_line(xy[0][0], xy[0][1], xy[1][0], xy[1][1], fill='red', width=2, tag=f'{nodes[0]}_{nodes[1]}')
-        self.dict_annotation[self.img2annotate_idx].remove_node(self.class_lbl_selected.get(), self.node_selected.split(':')[0].split(' ')[1])
-        self.check_canvas_object()
+        self.state_option = ['visible', 'obsecure', 'out of frame']
+        self.node_state = tk.StringVar(self.popup)
+        self.node_state.set(self.state_option[0])
+        self.drp_state = tk.OptionMenu(self.popup, self.node_state, *self.state_option)
+        self.drp_state.pack(pady=10)
+        tk.ttk.Button(self.popup, text="OK", command=self.popup_send_selection).pack()
 
 
-        # Clear selection
-        self.listbox_nodes.selection_clear(0, tk.END)
+    def popup_send_selection(self):
+        self.dict_annotation[self.img2annotate_idx].graph.nodes[self.node_selected.split(':')[0]]['visibility'] = self.node_state.get()
+        print(self.node_selected.split(':')[0], ': ', self.dict_annotation[self.img2annotate_idx].graph.nodes[self.node_selected.split(':')[0]]['visibility'])
+        self.popup.destroy()
+
 
     def node_delete_all(self):
         self.frame_mid_canvas.delete('all')
         self.draw_on_canvas(cv2.imread(os.path.join(self.saveto, self.img2annotate)))
         self.dict_annotation[self.img2annotate_idx].reset_graph()
+        self.update_field()
 
 
     """ Save the recorded data """
@@ -686,13 +599,13 @@ class Tab3(tk.Frame):
                 print('*' * 10)
                 nx, ny, _ = self.img_resized.shape
                 yolo_label = ''
-                for e, cls in enumerate(self.optn_class_lbl):
+                for e, cls in enumerate(self.optn_node_states):
                     if len(self.dict_annotation[nf].get_node_coords_all(cls)) > 0:
                         yolo_label += f'{e}'
                     for (node, dict_data) in self.dict_annotation[nf].get_node_coords_all(cls):
-                        xx, yy = dict_data['data']
+                        xx, yy = dict_data['coords_2d']
                         yolo_label += f' {xx/nx} {yy/ny}'
-                    if e < len(self.optn_class_lbl) - 1:
+                    if e < len(self.optn_node_states) - 1:
                         yolo_label += '\n'
                 print(yolo_label)
                 direc_exist_check(app_sys.PATH_ASSET_PREP_MSK_LBL)
@@ -705,9 +618,9 @@ class Tab3(tk.Frame):
             # Create data.yaml for trainig
             with open(os.path.join(app_sys.PATH_ASSET_PREP_MSK, 'data.yaml'), 'w') as f:
                 f.write('names:\n')
-                for cls in self.optn_class_lbl:
+                for cls in self.optn_node_states:
                     f.write(f'- {cls}\n')
-                f.write(f'nc: {len(self.optn_class_lbl)}\n')
+                f.write(f'nc: {len(self.optn_node_states)}\n')
                 f.write(f'path: {app_sys.PATH_ASSET_PREP_MSK}\n')
                 f.write(f'train: {app_sys.PATH_ASSET_PREP_MSK_TRAIN}\n')
                 f.write(f'val: {app_sys.PATH_ASSET_PREP_MSK_VAL}\n')
@@ -759,7 +672,7 @@ class Tab3(tk.Frame):
     def train_model(self):
         if len(os.listdir(app_sys.PATH_ASSET_PREP_MSK_TEMP)) > 0:
             self.split_train_val()
-            init_yolo_config('pre_mask')
+            init_yolo_config('pre_kp')
         thread_train = threading.Thread(target=self.training_thread)
         thread_train.start()
     
@@ -787,7 +700,7 @@ class Tab3(tk.Frame):
 
 
     """
-    Mask non-wall area using the trained model.
+    kp non-wall area using the trained model.
     """
     def predict(self):
         thread_predict = threading.Thread(target=self.predict_thread)
@@ -796,4 +709,4 @@ class Tab3(tk.Frame):
     def predict_thread(self):
         model = YOLO(os.path.join(app_sys.PATH_TOOL, 'runs', 'segment', self.trained_model_selected.get(), 'weights', 'best.pt'))
         direc_exist_check(app_sys.PATH_ASSET_MSK)
-        masked_video(self.video.vcap, model, saveas=os.path.join(app_sys.PATH_ASSET_MSK, f"{self.video.name.split('.')[0]}_masked.mp4"), class2keep=[0,1])
+        masked_video(self.video.vcap, model, saveas=os.path.join(app_sys.PATH_ASSET_MSK, f"{self.video.name.split('.')[0]}_kp.mp4"), class2keep=[0,1])

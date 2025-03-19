@@ -136,7 +136,8 @@ class AnnotationObjects:
 Graph representation of the wall keypoints
 """
 class WallKeypoints:
-    def __init__(self):
+    def __init__(self, img_name):
+        self.img = img_name
         # Adjacency matrix file name
         self.path_graph_adj = os.path.join(app_sys.PATH_ASSET, 'kp_adj.csv')
         # Graph object name 
@@ -224,17 +225,19 @@ class WallKeypoints:
         """
         2D coords
         """
-        scale = 10
+        scale = 15
+        xbase = 250
+        ybase = 100
 
         # X
-        xA = -5 * scale
-        xC = -3 * scale
-        xD = -2 * scale
-        xE = -scale
-        xF = 0
-        xH = 2 * scale
-        xI = 3 * scale
-        xK = 5 * scale
+        xA = xbase -5 * scale
+        xC = xbase -3 * scale
+        xD = xbase -2 * scale
+        xE = xbase - scale
+        xF = xbase
+        xH = xbase + 2 * scale
+        xI = xbase + 3 * scale
+        xK = xbase + 5 * scale
         self.coords_2d_x = {
             'xA': xA,
             'xC': xC,
@@ -247,7 +250,7 @@ class WallKeypoints:
         }
 
         # Y
-        y1 = 0
+        y1 = ybase
         y4 = y1 + scale * 3
         y6 = y1 + scale * 5
         y8 = y1 + scale * 7
@@ -360,7 +363,7 @@ class WallKeypoints:
         for k_fr in self.kp.keys():
             if len(self.kp_connection[k_fr]) != 0:
                 for k_to in self.kp_connection[k_fr]:
-                    self.graph.add_edge(k_fr, k_to)
+                    self.graph.add_edge(k_fr, k_to, tag=f'{k_fr}_{k_to}')
         
         # Save the graph adjacency matrix as csv file
         df = nx.to_pandas_adjacency(self.graph, nodelist=list(self.kp.keys()), dtype=int)
@@ -368,5 +371,40 @@ class WallKeypoints:
 
         # Save the graph object
         pickle.dump(self.graph, open(self.path_graph_init, 'wb'))
-
     
+    def get_all_edges(self):
+        return self.graph.edges
+    
+    def get_node_names(self):
+        return [k for k, v in self.get_node_coords_all()]
+
+    def get_node_coords(self, node:str):
+        return self.graph.nodes[node]['coords_2d']
+
+    def get_node_coords_all(self):
+        return list(self.graph.nodes.data())
+    
+    def update_node(self, node:str, coords:tuple):
+        # Update node coordinates
+        self.graph.nodes[node]['coords_2d'] = coords
+
+    def find_adj_edges(self, node:str):
+        """
+        {'<node0>': {'tag': '<node0>_<node>'}, '<node1>': {'tag': '<node>_<node1>'}}
+        """
+        return self.graph.adj[node]
+    
+    def find_adj_edges_tags(self, node):
+        dict_adj = self.find_adj_edges(node)
+        return [v['tag'] for _, v in dict_adj.items()]
+    
+    def find_neighbours(self, node:str):
+        return list(nx.all_neighbors(self.graph, node))
+
+    def update_node_coords_2d(self, node:str, coords:tuple):
+        # Update node coordinates
+        self.graph.nodes[node]['coords_2d'] = coords
+
+    def reset_graph(self):
+        # self.init_graph()
+        self.__init__(self.img)

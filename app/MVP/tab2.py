@@ -60,9 +60,10 @@ class Tab2(tk.Frame):
         self.saveto = app_sys.PATH_ASSET_PREP_MSK_TEMP
         direc_exist_check(self.saveto)
         self.listup_imgs()
-        self.direc_video = os.path.join(self.direc_assets, app_sys.Default_Video)
+        self.direc_video = os.path.join(self.direc_assets, app_sys.Default_Video_trimmed)
         self.video = VideoData(path=self.direc_video)
         self.post_init()
+        self.marker_radius = 6
 
 
     def post_init(self):
@@ -545,15 +546,7 @@ class Tab2(tk.Frame):
         """
         L-click to select nodes of polygon
         """
-        self.marker_radius = 6
         if not self.is_hold:
-            # self.frame_mid_canvas.create_oval(event.x-self.marker_radius, event.y-self.marker_radius,
-            #                                 event.x+self.marker_radius, event.y+self.marker_radius,
-            #                                 outline='red',
-            #                                 width=2,
-            #                                 tag=f"n{len([j['data'] for i, j in self.dict_annotation[self.img2annotate_idx].get_node_coords_all(self.class_lbl_selected.get())])}"
-            #                                 )
-
             cls = self.class_lbl_selected.get()
             nn = str(len(self.dict_annotation[self.img2annotate_idx].get_node_coords_all(cls)))
             self.dict_annotation[self.img2annotate_idx].add_node(cls, nn, (event.x, event.y))
@@ -563,7 +556,6 @@ class Tab2(tk.Frame):
 
 
             
-            # self.list_nodes_yolo += [event.x/self.canvas_w_video, event.y/self.canvas_h_video]
             print([j['data'] for i, j in self.dict_annotation[self.img2annotate_idx].get_node_coords_all(self.class_lbl_selected.get())])
             
             if len([j['data'] for i, j in self.dict_annotation[self.img2annotate_idx].get_node_coords_all(self.class_lbl_selected.get())]) > 1:      
