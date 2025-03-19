@@ -136,7 +136,10 @@ class AnnotationObjects:
 Graph representation of the wall keypoints
 """
 class WallKeypoints:
-    def __init__(self, img_name):
+    def __init__(self, img_name, **kwargs):
+        """
+        kwargs: inverty for tkinter visualisation as yaxis inverted in side the canvas.
+        """
         self.img = img_name
         # Adjacency matrix file name
         self.path_graph_adj = os.path.join(app_sys.PATH_ASSET, 'kp_adj.csv')
@@ -144,14 +147,15 @@ class WallKeypoints:
         self.path_graph_init = os.path.join(app_sys.PATH_ASSET, 'kp_graph_init.pkl')
 
         if not os.path.exists(self.path_graph_init):
-            self.init_graph()
+            self.init_graph(**kwargs)
         else:
             self.graph = pickle.load(open(self.path_graph_init, 'rb'))
 
-    def init_nodes(self):
+    def init_nodes(self, **kwargs):
         """
         Inititialise the node attributes
         """
+        inverty = kwargs.pop('inverty', False)
         self.wall_angle = 40 # degrees
         theta = self.wall_angle / 180 * np.pi
 
@@ -228,6 +232,9 @@ class WallKeypoints:
         scale = 15
         xbase = 250
         ybase = 100
+
+        if inverty:
+            ybase = -350
 
         # X
         xA = xbase -5 * scale
@@ -309,12 +316,18 @@ class WallKeypoints:
             'K14': {'coords_3d': (x,y,z), 'coords_2d': (xx,yy), 'visibility': 'visible'},
             'K18': {'coords_3d': (x,y,z), 'coords_2d': (xx,yy), 'visibility': 'visible'},
         }
-
-        for k, v in self.kp.items():
-            col, row = k[0], k[1:]
-            v['coords_3d'] = (self.coords_3d_x['x' + col], self.coords_3d_y['y' + row], self.coords_3d_z['z' + row])
-            v['coords_2d'] = (self.coords_2d_x['x' + col], self.coords_2d_y['y' + row])
-            print(v)
+        if not inverty:
+            for k, v in self.kp.items():
+                col, row = k[0], k[1:]
+                v['coords_3d'] = (self.coords_3d_x['x' + col], self.coords_3d_y['y' + row], self.coords_3d_z['z' + row])
+                v['coords_2d'] = (self.coords_2d_x['x' + col], self.coords_2d_y['y' + row])
+                print(v)
+        else:
+            for k, v in self.kp.items():
+                col, row = k[0], k[1:]
+                v['coords_3d'] = (self.coords_3d_x['x' + col], -1 * self.coords_3d_y['y' + row], self.coords_3d_z['z' + row])
+                v['coords_2d'] = (self.coords_2d_x['x' + col], -1 * self.coords_2d_y['y' + row])
+                print(v)
 
     def init_edges(self):
         """
@@ -355,8 +368,8 @@ class WallKeypoints:
             'K18': ['K14', 'H14', 'H18'],
         }
 
-    def init_graph(self):
-        self.init_nodes()
+    def init_graph(self, **kwargs):
+        self.init_nodes(**kwargs)
         self.init_edges()
         self.graph = nx.Graph()
         self.graph.add_nodes_from([(k, v) for k, v in self.kp.items()])

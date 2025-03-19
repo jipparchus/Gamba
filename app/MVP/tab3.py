@@ -369,7 +369,8 @@ class Tab3(tk.Frame):
         """
         Create dictionary for annotation graph data for each images
         """
-        self.dict_annotation = {e: WallKeypoints(img) for e, img in enumerate(self.imgs2annotate_original)}
+        kwargs = {'inverty':True}
+        self.dict_annotation = {e: WallKeypoints(img, **kwargs) for e, img in enumerate(self.imgs2annotate_original)}
         
     def listup_imgs(self):
         """
@@ -461,15 +462,8 @@ class Tab3(tk.Frame):
 
         edges = self.dict_annotation[self.img2annotate_idx].get_all_edges()
         lis_nodes = self.dict_annotation[self.img2annotate_idx].get_node_coords_all()
-        
-        
-        
-        
-        
+       
         dict_node_coords = {name: data['coords_2d'] for name, data in lis_nodes}
-        
-        
-        
         
         # Draw lines
         for edge in edges.data():
