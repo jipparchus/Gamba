@@ -20,8 +20,10 @@ Others
 def gpu_info():
     print('CUDA version? - ', torch.__version__)
     print('CUDA available? - ', torch.cuda.is_available())
-    print(torch.cuda.get_device_name())
-    print(torch.cuda.memory_summary())
+    if torch.cuda.is_available():
+        print(torch.cuda.get_device_name())
+        print(torch.cuda.memory_summary())
+    return torch.cuda.is_available()
 
 
 """
@@ -50,7 +52,7 @@ def standardize_fsize(img, target_size=640):
 
     return padded_img
 
-def process_frame_seg(frame, model, class2keep, conf_lvl, bg_color):
+def process_frame_seg(frame, model, class2keep, conf_lvl, bg_color, isgpu):
     """
     Mask out all areas not listed in class2keep and replace them with a gray background.
     Object listed in color_class dictionary will be replaced by a single color
@@ -65,7 +67,11 @@ def process_frame_seg(frame, model, class2keep, conf_lvl, bg_color):
     """
     frame = standardize_fsize(frame)
     # Run YOLO segmentation
-    results = model(frame, device='cuda:0')
+    if isgpu:
+        device = 'cuda:0'
+    else:
+        device = 'cpu'
+    results = model(frame, device=device)
     masks = results[0].masks.data  # Segmentation masks
     class_ids = results[0].boxes.cls.cpu().numpy()  # Class IDs
     
@@ -112,7 +118,7 @@ def masked_video(video, model, **kwargs):
     class2keep = kwargs.pop('class2keep', [0,1])
     conf_lvl = kwargs.pop('conf_lvl', 0.5)
     bg_color = kwargs.pop('bg_color', (128, 128, 128))
-    gpu_info()
+    isgpu = gpu_info()
     w = int(video.get(cv2.CAP_PROP_FRAME_WIDTH))
     h = int(video.get(cv2.CAP_PROP_FRAME_HEIGHT))
     fps = float(round(video.get(cv2.CAP_PROP_FPS)))
@@ -126,7 +132,7 @@ def masked_video(video, model, **kwargs):
         if not ret:
             break
 
-        processed, mask_gray = process_frame_seg(frame, model, class2keep, conf_lvl, bg_color)
+        processed, mask_gray = process_frame_seg(frame, model, class2keep, conf_lvl, bg_color, isgpu)
         out.write(processed)
         lis_masks.append(mask_gray)
 
@@ -138,4 +144,9 @@ def masked_video(video, model, **kwargs):
     pickle.dump(np.array(lis_masks), open(saveas.replace('mp4','pkl'), 'wb'))
 
 def annotated_video(video, model, conf_lvl=0.5):
-    return model(os.path.join(app_sys.PATH_ASSET_RAW, video), conf=conf_lvl, device='cuda:0', save=True)
+    isgpu = gpu_info()
+    if isgpu:
+        device = 'cuda:0'
+    else:
+        device = 'cpu'
+    return model(os.path.join(app_sys.PATH_ASSET_RAW, video), conf=conf_lvl, device=device, save=True)
