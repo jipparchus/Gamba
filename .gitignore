@@ -13,6 +13,7 @@ app/oldbit/
 # Video-Depth-Anything model and venv for it (automatically created by the main script)
 app/MVP/Video-Depth-Anything/
 app/MVP/venv/
+app/MVP/runs/
 
 
 # Byte-compiled / optimized / DLL files

@@ -237,8 +237,8 @@ class Tab3(tk.Frame):
 
         self.optn_node_states = [
             'visible',
-            'obsecure',
-            'out of frames'
+            'occluded',
+            'missing'
         ]
 
         self.btn_annotation = tk.Button(frame, text='Start Annotation', bg='lightblue', command=self.start_annotation_thread)
@@ -555,10 +555,9 @@ class Tab3(tk.Frame):
         self.popup.title("Select an Option")
         self.popup.geometry("300x100")
 
-        self.state_option = ['visible', 'obsecure', 'out of frame']
         self.node_state = tk.StringVar(self.popup)
-        self.node_state.set(self.state_option[0])
-        self.drp_state = tk.OptionMenu(self.popup, self.node_state, *self.state_option)
+        self.node_state.set(self.dict_annotation[self.img2annotate_idx].graph.nodes[node]['visibility'])
+        self.drp_state = tk.OptionMenu(self.popup, self.node_state, *self.optn_node_states)
         self.drp_state.pack(pady=10)
         tk.ttk.Button(self.popup, text="OK", command=self.popup_send_selection).pack()
 
@@ -583,7 +582,6 @@ class Tab3(tk.Frame):
 
     def save_data_thread(self):
         try:
-            
             print('#'*50)
             for nf in range(len(self.imgs2annotate_original)):
                 img_original = self.imgs2annotate_original[nf].split('.')[0]
@@ -592,32 +590,39 @@ class Tab3(tk.Frame):
                 lis_imgs = [i.split('.')[0] for i in self.imgs2annotate if (img_basename in i)]
                 print('*' * 10)
                 nx, ny, _ = self.img_resized.shape
+
+                # yolo pose model annotation format:
+                # <class id> <xc> <yc> <width> <height> <kp1x> <kp1y> <kp_visible> ... <kpNx> <kpNy> <kpNv>
                 yolo_label = ''
-                for e, cls in enumerate(self.optn_node_states):
-                    if len(self.dict_annotation[nf].get_node_coords_all(cls)) > 0:
-                        yolo_label += f'{e}'
-                    for (node, dict_data) in self.dict_annotation[nf].get_node_coords_all(cls):
-                        xx, yy = dict_data['coords_2d']
-                        yolo_label += f' {xx/nx} {yy/ny}'
-                    if e < len(self.optn_node_states) - 1:
-                        yolo_label += '\n'
+                # Add coordinates and visibility first, and add the bbox info at the end. Calculate bbox only for nodes with their status not 'missing'
+                # xcoords list
+                xs, ys = [], []
+                for (node, dict_data) in self.dict_annotation[nf].get_node_coords_all():
+                    xx, yy = dict_data['coords_2d']
+                    vv = dict_data['visibility']
+                    yolo_label += f' {xx/nx} {yy/ny} {self.optn_node_states.index(vv)}'
+                    if vv != 'missing':
+                        xs.append(xx/nx)
+                        ys.append(yy/ny)
+                yolo_label = f'0 {np.mean(xs)} {np.mean(ys)} {abs(np.max(xs)-np.min(xs))} {abs(np.max(ys)-np.min(ys))}' + yolo_label
                 print(yolo_label)
-                direc_exist_check(app_sys.PATH_ASSET_PREP_MSK_LBL)
+                direc_exist_check(app_sys.PATH_ASSET_PREP_KP_LBL)
                 # Save the same annotations for the originl and modified images
                 print('Saved for:\n')
                 for img in lis_imgs:
                     print(img)
-                    with open(os.path.join(app_sys.PATH_ASSET_PREP_MSK_LBL, img + '.txt'), 'w') as f:
+                    with open(os.path.join(app_sys.PATH_ASSET_PREP_KP_LBL, img + '.txt'), 'w') as f:
                         f.write(yolo_label)
             # Create data.yaml for trainig
-            with open(os.path.join(app_sys.PATH_ASSET_PREP_MSK, 'data.yaml'), 'w') as f:
+            with open(os.path.join(app_sys.PATH_ASSET_PREP_KP, 'data.yaml'), 'w') as f:
                 f.write('names:\n')
-                for cls in self.optn_node_states:
-                    f.write(f'- {cls}\n')
-                f.write(f'nc: {len(self.optn_node_states)}\n')
-                f.write(f'path: {app_sys.PATH_ASSET_PREP_MSK}\n')
-                f.write(f'train: {app_sys.PATH_ASSET_PREP_MSK_TRAIN}\n')
-                f.write(f'val: {app_sys.PATH_ASSET_PREP_MSK_VAL}\n')
+                f.write(' - wall\n')
+                f.write('nc: 1\n')
+                f.write('kpt_shape:\n')
+                f.write(' - 32\n - 3\n')
+                f.write(f'path: {app_sys.PATH_ASSET_PREP_KP}\n')
+                f.write(f'train: {app_sys.PATH_ASSET_PREP_KP_TRAIN}\n')
+                f.write(f'val: {app_sys.PATH_ASSET_PREP_KP_VAL}\n')
                 print(f)
                 
         except AttributeError as e:
@@ -628,7 +633,7 @@ class Tab3(tk.Frame):
         """
         Split the images into training and validation sets
         """
-        direc_imgs = app_sys.PATH_ASSET_PREP_MSK_TEMP
+        direc_imgs = app_sys.PATH_ASSET_PREP_KP_TEMP
         # images to be annotated
         imgs = [f for f in os.listdir(direc_imgs) if f.endswith('.jpg')]
         train, valid = train_test_split(imgs, test_size=0.2, random_state=1)
@@ -637,7 +642,7 @@ class Tab3(tk.Frame):
         for ndirec in dict_data.keys():
             # ndirec ... 'train' or 'val'
             # train / val directory
-            new_direc = os.path.join(app_sys.PATH_ASSET_PREP_MSK, 'images', ndirec)
+            new_direc = os.path.join(app_sys.PATH_ASSET_PREP_KP, 'images', ndirec)
             direc_exist_check(new_direc)
             # Number of files exist in the directory already
             n_pre_exist = len(os.listdir(new_direc))
@@ -645,12 +650,12 @@ class Tab3(tk.Frame):
             # for nfile, nfile_new in zip(dict_data[ndirec], rename(dict_data[ndirec], base=n_pre_exist)):
             for nfile in dict_data[ndirec]:
                 # Number of files exist in the directory already.
-                os.rename(os.path.join(app_sys.PATH_ASSET_PREP_MSK_TEMP, nfile), os.path.join(new_direc, nfile))
+                os.rename(os.path.join(app_sys.PATH_ASSET_PREP_KP_TEMP, nfile), os.path.join(new_direc, nfile))
         
         """
         Split the labels into training and validation sets
         """
-        direc_labels = app_sys.PATH_ASSET_PREP_MSK_LBL
+        direc_labels = app_sys.PATH_ASSET_PREP_KP_LBL
         # Check the image names in the training/validation set
         dict_data = dict(zip(['train', 'val'], [train, valid]))
         for ndirec in dict_data.keys():
@@ -664,7 +669,7 @@ class Tab3(tk.Frame):
 
     """ YOLO seg train """
     def train_model(self):
-        if len(os.listdir(app_sys.PATH_ASSET_PREP_MSK_TEMP)) > 0:
+        if len(os.listdir(app_sys.PATH_ASSET_PREP_KP_TEMP)) > 0:
             self.split_train_val()
             init_yolo_config('pre_kp')
         thread_train = threading.Thread(target=self.training_thread)
@@ -673,14 +678,14 @@ class Tab3(tk.Frame):
     def training_thread(self):
         print(self.device_selected.get())
         model_selected = self.yolo_model_selected.get()
-        if model_selected == 'yolov11n-seg':
-            model = YOLO(app_sys.PATH_MODEL_YOLOV11_SEG)
+        if model_selected == 'yolov11n-pose':
+            model = YOLO(app_sys.PATH_MODEL_YOLOV11_POSE)
         else:
-            # model = YOLO(app_sys.PATH_MODEL_YOLOV12_SEG)
+            # model = YOLO(app_sys.PATH_MODEL_YOLOV12_POSE)
             model = YOLO(f'{model_selected}.pt')
         print(model.info())
         model.train(
-            data=os.path.join(app_sys.PATH_ASSET_PREP_MSK_YAML),
+            data=os.path.join(app_sys.PATH_ASSET_PREP_KP_YAML),
             epochs=int(self.epochs.get()),
             imgsz=640,  # Image size
             batch=int(self.batch.get()),  # Adjust batch size based on GPU memory
@@ -701,6 +706,6 @@ class Tab3(tk.Frame):
         thread_predict.start()
 
     def predict_thread(self):
-        model = YOLO(os.path.join(app_sys.PATH_TOOL, 'runs', 'segment', self.trained_model_selected.get(), 'weights', 'best.pt'))
-        direc_exist_check(app_sys.PATH_ASSET_MSK)
-        masked_video(self.video.vcap, model, saveas=os.path.join(app_sys.PATH_ASSET_MSK, f"{self.video.name.split('.')[0]}_kp.mp4"), class2keep=[0,1])
+        model = YOLO(os.path.join(app_sys.PATH_TOOL, 'runs', 'pose', self.trained_model_selected.get(), 'weights', 'best.pt'))
+        direc_exist_check(app_sys.PATH_ASSET_KP)
+        # masked_video(self.video.vcap, model, saveas=os.path.join(app_sys.PATH_ASSET_KP, f"{self.video.name.split('.')[0]}_kp.mp4"), class2keep=[0,1])
