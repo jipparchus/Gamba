@@ -8,6 +8,7 @@ So the later, videos will be annotated based on the previous annotations.
 """
 
 import os
+import pickle
 import sys
 import threading
 import tkinter as tk
@@ -29,7 +30,7 @@ sys.path.append(os.path.split(path_current)[0])
 
 from app_sys import AppSys
 from utils import VideoData, WallKeypoints, direc_exist_check, init_yolo_config
-from utils_predict import masked_video
+from utils_predict import annotated_video
 from utils_train import SampleImage, rename
 
 app_sys = AppSys()
@@ -96,7 +97,9 @@ class Tab3(tk.Frame):
         self.canvas_w_video = 500
         self.canvas_h_video = 500
         self.frame_mid_canvas = tk.Canvas(self.frame_mid, width=self.canvas_w_video, height=self.canvas_h_video)
+        # self.frame_mid_canvas = ZoomPanCanvas(self.frame_mid, width=self.canvas_w_video, height=self.canvas_h_video)
         self.frame_mid_canvas.pack(side=tk.TOP)
+        
 
 
         """ frames in frame_btm """
@@ -236,9 +239,10 @@ class Tab3(tk.Frame):
         self.nframe_lbl.grid(column=3, row=0)
 
         self.optn_node_states = [
-            'visible',
+            'missing',
             'occluded',
-            'missing'
+            'visible',
+            
         ]
 
         self.btn_annotation = tk.Button(frame, text='Start Annotation', bg='lightblue', command=self.start_annotation_thread)
@@ -295,7 +299,10 @@ class Tab3(tk.Frame):
         self.btn_train.grid(column=6, row=0)
 
         # Which trained model to use for prediction
-        self.lis_trained_model = list(os.listdir('./runs/segment/'))
+        if len(list(os.listdir('./runs/pose/'))) >0:
+            self.lis_trained_model = list(os.listdir('./runs/pose/'))
+        else:
+            self.lis_trained_model = 'None'
         self.trained_model_selected = tk.StringVar()
         self.trained_model_selected.set(self.lis_trained_model[0])
         self.optn_trained_model = tk.OptionMenu(frame, self.trained_model_selected, *self.lis_trained_model)
@@ -352,6 +359,7 @@ class Tab3(tk.Frame):
         Create blurred, sharpened and the original images from the selected video.
         """
         lis_effects = ['original', 'depth']
+        # lis_effects = ['original']
         for i, j in zip([self.effect_blur.get(), self.effect_sharp.get()], ['blur', 'sharp']):
             if i:
                 lis_effects.append(j)
@@ -388,21 +396,27 @@ class Tab3(tk.Frame):
         nframe -= 1
         self.nframe_check(nframe)
         nframe = int(self.nframe.get().split(' / ')[0])
-        print(os.path.join(self.saveto, self.imgs2annotate_original[nframe-1]))
-        print(self.dict_annotation[nframe].graph)
-        self.draw_on_canvas(cv2.imread(os.path.join(self.saveto, self.imgs2annotate_original[nframe-1])))
+        print(os.path.join(self.saveto, self.imgs2annotate_original[self.img2annotate_idx]))
+        print(self.dict_annotation[self.img2annotate_idx].graph)
+        self.draw_on_canvas(cv2.imread(os.path.join(self.saveto, self.imgs2annotate_original[self.img2annotate_idx])))
         self.update_field()
     
     def frame_next(self):
+        self.save_samples()
         nframe = int(self.nframe.get().split(' / ')[0])
         nframe += 1
         self.nframe_check(nframe)
         nframe = int(self.nframe.get().split(' / ')[0])
-        print(os.path.join(self.saveto, self.imgs2annotate_original[nframe-1]))
-        print(self.dict_annotation[nframe].graph)
-        self.draw_on_canvas(cv2.imread(os.path.join(self.saveto, self.imgs2annotate_original[nframe-1])))
+        print(os.path.join(self.saveto, self.imgs2annotate_original[self.img2annotate_idx]))
+        print(self.dict_annotation[self.img2annotate_idx].graph)
+        self.draw_on_canvas(cv2.imread(os.path.join(self.saveto, self.imgs2annotate_original[self.img2annotate_idx])))
         self.update_field()
-        
+
+    def save_samples(self):
+        img = os.path.join(self.saveto, self.imgs2annotate_original[self.img2annotate_idx])
+        kps = self.dict_annotation[self.img2annotate_idx]
+        pickle.dump(img, open(os.path.join(app_sys.PATH_ASSET,'concept_test', 'img.pkl'), 'wb'))
+        pickle.dump(kps, open(os.path.join(app_sys.PATH_ASSET,'concept_test', 'kp.pkl'), 'wb'))
 
     def nframe_check(self, nframe:int):
         # Check the current frame number
@@ -413,7 +427,7 @@ class Tab3(tk.Frame):
         
         # Current image to be annotated
         self.img2annotate_idx = nframe - 1
-        self.img2annotate = self.imgs2annotate_original[nframe - 1]
+        self.img2annotate = self.imgs2annotate_original[self.img2annotate_idx]
         self.nframe.set(f'{nframe} / {len(self.imgs2annotate_original)}')
 
     def node_status_onselection(self):
@@ -596,15 +610,27 @@ class Tab3(tk.Frame):
                 yolo_label = ''
                 # Add coordinates and visibility first, and add the bbox info at the end. Calculate bbox only for nodes with their status not 'missing'
                 # xcoords list
-                xs, ys = [], []
+                xs, ys, vis = [], [], []
                 for (node, dict_data) in self.dict_annotation[nf].get_node_coords_all():
                     xx, yy = dict_data['coords_2d']
-                    vv = dict_data['visibility']
-                    yolo_label += f' {xx/nx} {yy/ny} {self.optn_node_states.index(vv)}'
-                    if vv != 'missing':
-                        xs.append(xx/nx)
-                        ys.append(yy/ny)
-                yolo_label = f'0 {np.mean(xs)} {np.mean(ys)} {abs(np.max(xs)-np.min(xs))} {abs(np.max(ys)-np.min(ys))}' + yolo_label
+                    vv = self.optn_node_states.index(dict_data['visibility'])
+                    if vv == 0:         # If missing
+                        xx = np.nan
+                        yy = np.nan
+                    xs.append(xx)
+                    ys.append(yy)
+                    vis.append(vv)
+                    yolo_label += f' {xx/nx} {yy/ny} {vv}'
+                # KP annotation formatting
+                kp_coords = np.array([[xx,yy] for xx, yy in zip(xs, ys)])
+                # BBOX info
+                xmin, ymin = np.nanmin(kp_coords[:, 0]), np.nanmin(kp_coords[:, 1])
+                xmax, ymax = np.nanmax(kp_coords[:, 0]), np.nanmax(kp_coords[:, 1])
+                x_c = (xmin + xmax) / 2 / nx
+                y_c = (ymin + ymax) / 2 / ny
+                ww = (xmax - xmin) / nx
+                hh = (ymax - ymin) / ny
+                yolo_label = f'0 {x_c} {y_c} {ww} {hh}' + yolo_label
                 print(yolo_label)
                 direc_exist_check(app_sys.PATH_ASSET_PREP_KP_LBL)
                 # Save the same annotations for the originl and modified images
@@ -667,7 +693,7 @@ class Tab3(tk.Frame):
                 f = nfile.split('.')[0] + '.txt'
                 os.rename(os.path.join(direc_labels, f), os.path.join(new_direc, f))
 
-    """ YOLO seg train """
+    """ YOLO pose train """
     def train_model(self):
         if len(os.listdir(app_sys.PATH_ASSET_PREP_KP_TEMP)) > 0:
             self.split_train_val()
@@ -708,4 +734,5 @@ class Tab3(tk.Frame):
     def predict_thread(self):
         model = YOLO(os.path.join(app_sys.PATH_TOOL, 'runs', 'pose', self.trained_model_selected.get(), 'weights', 'best.pt'))
         direc_exist_check(app_sys.PATH_ASSET_KP)
+        annotated_video(self.video.vcap, model)
         # masked_video(self.video.vcap, model, saveas=os.path.join(app_sys.PATH_ASSET_KP, f"{self.video.name.split('.')[0]}_kp.mp4"), class2keep=[0,1])

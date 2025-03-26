@@ -2,6 +2,7 @@ import os
 import pickle
 import sys
 import threading
+import tkinter as tk
 from dataclasses import dataclass
 
 import cv2
@@ -421,3 +422,4 @@ class WallKeypoints:
     def reset_graph(self):
         # self.init_graph()
         self.__init__(self.img)
+

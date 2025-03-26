@@ -25,6 +25,8 @@ class AppSys:
         self.PATH_ASSET_DEPTH = os.path.join(self.PATH_ASSET, 'depth')
         # Masked data
         self.PATH_ASSET_MSK = os.path.join(self.PATH_ASSET, 'masked')
+        # Key points detectetion
+        self.PATH_ASSET_KP = os.path.join(self.PATH_ASSET, 'kp')
 
 
         # Keypoint detection data
