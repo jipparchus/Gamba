@@ -1,0 +1,35 @@
+# ✅ Overview
+
+A tool to provide 3D views of attempts to MoonBoard [MoonBoard](https://moonclimbing.com/moonboard) climbing video taken without tripod or camera caribrations.
+
+![mind map](ideas.png)
+
+# ✅ Motivations
+
+I believe that climbers need to have ...
+
+1. Scientific knowlkege (Physics, Exercise Physiology, etc.)
+
+2. Observation skills (Learn from previous / others attempts)
+
+3. Ability to achieve the moves they imagined
+
+There are professional climbing coaches who know how to improve all of the three points. But, isn't it great if we could easily revise our attempts by outselves? The first step to create a tool to support climbers with getting insight on especially point 1 and 2 for general bouldering attempts, I would like to start with a simplified version. The famous MoonBoard is one of the standardised training walls, and its problems are shared by all the climbers over the globe. I would like to create a tool that analyse the submitted climbing video in extrapolated 3D space comparing with other climbers attemps. Also, this tool should allow climbers to compare the attempts of themselves to track their progress.
+
+# ✅ This Application Provides ... 
+
+### (almost done. Works in local environment only)
+
+1. 3D view of the climber and the wall
+
+2. Contact states of the hands and feet on the wall
+
+# 🚀 Ideas
+
+- Make the MVP available for climbers with the shared storage to geather training dataset
+
+- Physical quantities (momentum, speed, holding time, contact forces, impulse, etc.)
+
+- Muscle contraction estimation (deep learning or analytical, maybe?)
+
+- Create the same tool for other standardised walls (not only for training walls but it could be for competition walls e.g. speed wall, [TITAN](https://epclimbing.com/en/products/boulder-titan-ifsc-official) wall)
