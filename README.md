@@ -2,7 +2,7 @@
 
 A tool to provide 3D views of attempts to MoonBoard [MoonBoard](https://moonclimbing.com/moonboard) climbing video taken without a tripod or camera calibrations.
 
-![mind map](ideas.png)
+![mind map](app/asset/ideas.png)
 
 # ✅ Motivations
 
@@ -20,13 +20,26 @@ There are professional climbing coaches who know how to improve all of the three
 
 ### (almost done. Works in the local environment only)
 
-1. 3D view of the climber and the wall
+3D view of the climber and the wall
 
-2. Contact states of the hands and feet on the wall
+## Video trimming and Depth Estimation
+
+[![trim_depth](http://img.youtube.com/vi/NvD-k9kS8rA/mqdefault.jpg)](https://youtu.be/NvD-k9kS8rA)
+
+## Background Masking
+
+[![trim_depth](http://img.youtube.com/vi/zZBXL1ZAwYg/mqdefault.jpg)](https://youtu.be/zZBXL1ZAwYg)
+
+## Key Point Detection (under development)
+
+[![trim_depth](http://img.youtube.com/vi/oy99ei8cByA/mqdefault.jpg)](https://youtu.be/oy99ei8cByA)
+
 
 # 🚀 Ideas
 
 - Make the MVP available for climbers with the shared storage to gather training dataset
+
+- Contact states of the hands and feet on the wall
 
 - Physical quantities (momentum, speed, holding time, contact forces, impulse, etc.)
 
