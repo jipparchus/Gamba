@@ -613,6 +613,8 @@ class Tab3(tk.Frame):
                 xs, ys, vis = [], [], []
                 for (node, dict_data) in self.dict_annotation[nf].get_node_coords_all():
                     xx, yy = dict_data['coords_2d']
+                    xx = xx/self.canvas_w_video*self.resize2
+                    yy = yy/self.canvas_y_video*self.resize2
                     vv = self.optn_node_states.index(dict_data['visibility'])
                     if vv == 0:         # If missing
                         xx = np.nan

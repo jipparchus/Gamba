@@ -64,6 +64,7 @@ class Tab2(tk.Frame):
         self.video = VideoData(path=self.direc_video)
         self.post_init()
         self.marker_radius = 6
+        self.resize2 = 640
 
 
     def post_init(self):
@@ -683,7 +684,7 @@ class Tab2(tk.Frame):
                         yolo_label += f'{e}'
                     for (node, dict_data) in self.dict_annotation[nf].get_node_coords_all(cls):
                         xx, yy = dict_data['data']
-                        yolo_label += f' {xx/nx} {yy/ny}'
+                        yolo_label += f' {xx/self.canvas_w_video*self.resize2/nx} {yy/self.canvas_h_video*self.resize2/ny}'
                     if e < len(self.optn_class_lbl) - 1:
                         yolo_label += '\n'
                 print(yolo_label)
@@ -767,7 +768,7 @@ class Tab2(tk.Frame):
         model.train(
             data=os.path.join(app_sys.PATH_ASSET_PREP_MSK_YAML),
             epochs=int(self.epochs.get()),
-            imgsz=640,  # Image size
+            imgsz=self.resize2,  # Image size
             batch=int(self.batch.get()),  # Adjust batch size based on GPU memory
             device=self.device_selected.get(),  # Use GPU ("cuda") or CPU ("cpu")
             augment=True,

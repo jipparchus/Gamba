@@ -54,17 +54,17 @@ def standardize_fsize(img, target_size=640):
 
 def standardize_fsize_coord_conversion(video_path, target_size=640, coords=(0,0)):
     """
-    coordinates conversion. from coords after standardising to that of the before.
+    coordinates conversion from coords after standardising to that of the before.
     """
-    x, y = coords
     video = cv2.VideoCapture(video_path)
     w = int(video.get(cv2.CAP_PROP_FRAME_WIDTH))
     h = int(video.get(cv2.CAP_PROP_FRAME_HEIGHT))
     scale = target_size / max(h, w)
     new_w, new_h = int(w * scale), int(h * scale)
-    # New origin
     pad_top = (target_size - new_h) // 2
     pad_left = (target_size - new_w) // 2
+    # Coordinates in the standardized frame
+    x, y = coords
     x -= pad_left
     y -= pad_top
     x /= scale
