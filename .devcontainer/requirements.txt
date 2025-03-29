@@ -2,4 +2,6 @@ torch_geometric
 ultralytics
 opencv-python
 scikit-learn
+scikit-spatial
 ipykernel
+ipympl
