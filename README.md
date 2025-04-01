@@ -24,15 +24,23 @@ There are professional climbing coaches who know how to improve all of the three
 
 ## Video trimming and Depth Estimation
 
-[![trim_depth](http://img.youtube.com/vi/NvD-k9kS8rA/mqdefault.jpg)](https://youtu.be/NvD-k9kS8rA)
+[![trim_depth](http://img.youtube.com/vi/NvD-k9kS8rA/hqdefault.jpg)](https://youtu.be/NvD-k9kS8rA)
 
 ## Background Masking
 
-[![trim_depth](http://img.youtube.com/vi/zZBXL1ZAwYg/mqdefault.jpg)](https://youtu.be/zZBXL1ZAwYg)
+[![masking](http://img.youtube.com/vi/zZBXL1ZAwYg/hqdefault.jpg)](https://youtu.be/zZBXL1ZAwYg)
 
 ## Key Point Detection (under development)
 
-[![trim_depth](http://img.youtube.com/vi/oy99ei8cByA/mqdefault.jpg)](https://youtu.be/oy99ei8cByA)
+[![kp_detection](http://img.youtube.com/vi/oy99ei8cByA/hqdefault.jpg)](https://youtu.be/oy99ei8cByA)
+
+## Concept Test (under development)
+
+[![concept_test](https://i3.ytimg.com/vi/PIYkOEfdV5s/hqdefault.jpg)](https://youtu.be/PIYkOEfdV5s)
+
+## 3D Wall Model (under development)
+
+[![3D_wall](https://i3.ytimg.com/vi/iY6Aph-pPpQ/hqdefault.jpg)](https://youtu.be/iY6Aph-pPpQ)
 
 
 # 🚀 Ideas
