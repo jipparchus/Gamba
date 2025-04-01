@@ -162,6 +162,8 @@ class Tab1(tk.Frame):
         self.btn_depth = tk.Button(frame, text='Video-Depth-Anything', command=self.save_depth_video)
         self.btn_depth.grid(column=0, row=1)
 
+        self.btn_hpose = tk.Button(frame, text='Human Pose Estimation', command=self.save_hpose_video)
+        self.btn_hpose.grid(column=1, row=1)
     """
     Utils
     """
@@ -326,4 +328,11 @@ class Tab1(tk.Frame):
         except RuntimeError:
             print('Error in video depth estimation.')
         self.btn_depth.config(state='normal')
+
+    """
+    Human Pose Estimation
+    """
+    def save_hpose_video(self):
+        # Use Mediapipe pose estimation for 3D pose
+        print('Pose estimation')
 

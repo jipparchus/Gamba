@@ -423,3 +423,13 @@ class WallKeypoints:
         # self.init_graph()
         self.__init__(self.img)
 
+
+class Holds:
+    """
+    Get coordinates of all the holds
+    kpcoords: Pandas DataFrame
+    """
+    def __init__(self, kpcoords):
+        self.kpcoords = kpcoords
+
+    # def get_

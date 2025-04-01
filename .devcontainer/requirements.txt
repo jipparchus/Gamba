@@ -1,5 +1,6 @@
 torch_geometric
 ultralytics
+mediapipe
 opencv-python
 scikit-learn
 scikit-spatial
