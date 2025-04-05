@@ -398,6 +398,12 @@ class WallKeypoints:
     def get_node_coords_all(self):
         return list(self.graph.nodes.data())
     
+    def get_node_coords_all_3d(self):
+        dict_coords = {}
+        for node, data in self.get_node_coords_all():
+            dict_coords[node] = data['coords_3d']
+        return dict_coords
+    
     def update_node(self, node:str, coords:tuple):
         # Update node coordinates
         self.graph.nodes[node]['coords_2d'] = coords
@@ -426,10 +432,59 @@ class WallKeypoints:
 
 class Holds:
     """
-    Get coordinates of all the holds
-    kpcoords: Pandas DataFrame
+    Get coordinates of all the holds projected to the video frame from the rotayion & translation matrix and the 3d coordinates of the holds
+    coords_world: 3d coordinates of all the holds used for solving PnP
+    rvec: Rotation vector
+    tvec: Translation vector
+    K: Camera matrix
+    dist: Distortion coefficients
     """
-    def __init__(self, kpcoords):
-        self.kpcoords = kpcoords
+    def __init__(self, **kwargs):
+        # wold coordinates of the holds
+        self.path_coords_holds = os.path.join(app_sys.PATH_ASSET, 'world_coords_holds.pkl')
 
-    # def get_
+        if not os.path.exists(self.path_coords_holds):
+            self.init_nodes(**kwargs)
+        else:
+            self.coords_world = pickle.load(open(self.path_coords_holds, 'rb'))
+        self.rvec = kwargs.pop('rvec', None)
+        self.tvec = kwargs.pop('tvec', None)
+        self.K = kwargs.pop('K', None)
+        self.dist = kwargs.pop('dist', None)
+
+    def init_nodes(self, **kwargs):
+        """
+        Inititialise the node attributes
+        """
+        self.coords_world = {}
+        inverty = kwargs.pop('inverty', False)
+        self.wall_angle = 40 # degrees
+        theta = self.wall_angle / 180 * np.pi
+
+        cols = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K']
+        y0 = 100 * np.cos(theta) + 370
+        z0 = 100 * np.sin(theta)
+        for col in cols:
+            for row in range(1,19):
+                # Centred on column F
+                xx = (cols.index(col) - 5) * 200
+                yy = y0 + 200 * np.cos(theta) * (row - 1)
+                zz = z0 + 200 * np.sin(theta) * (row - 1)
+                if inverty:
+                    yy = -1 * yy
+                self.coords_world[col + str(row)] = (xx, yy, zz)
+
+        pickle.dump(self.coords_world, open(self.path_coords_holds, 'wb'))
+
+    def get_projection(self):
+        """
+        Get the projection of the holds world coordinates to the video perspective
+        """
+        # Map the 3D point to 2D point
+        world_coords = np.array(list(self.coords_world.values())).astype('float32')
+        coords_2d, _ = cv2.projectPoints(world_coords, 
+                                        self.rvec, self.tvec, 
+                                        self.K, 
+                                        self.dist)
+        self.coords_frame = {k: v for k, v in zip(self.coords_world.keys(), coords_2d)}
+        return self.coords_frame
