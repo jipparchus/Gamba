@@ -36,7 +36,7 @@ There are professional climbing coaches who know how to improve all of the three
 
 ## Concept Test (under development)
 
-[![concept_test](https://i3.ytimg.com/vi/PIYkOEfdV5s/hqdefault.jpg)](https://youtu.be/PIYkOEfdV5s)
+[![concept_test](https://i3.ytimg.com/vi/JPiTEaS1B7M/hqdefault.jpg)](https://youtu.be/JPiTEaS1B7M)
 
 ## 3D Wall Model (under development)
 
