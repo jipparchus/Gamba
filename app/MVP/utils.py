@@ -156,7 +156,7 @@ class WallKeypoints:
         """
         Inititialise the node attributes
         """
-        inverty = kwargs.pop('inverty', False)
+        inverty = kwargs.pop('inverty', True)
         self.wall_angle = 40 # degrees
         theta = self.wall_angle / 180 * np.pi
 
@@ -457,7 +457,7 @@ class Holds:
         Inititialise the node attributes
         """
         self.coords_world = {}
-        inverty = kwargs.pop('inverty', False)
+        inverty = kwargs.pop('inverty', True)
         self.wall_angle = 40 # degrees
         theta = self.wall_angle / 180 * np.pi
 
